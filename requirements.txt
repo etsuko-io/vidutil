@@ -1,0 +1,9 @@
+numpy
+opencv-python-headless>=4.5.5.62,<5.0.0
+pygobject==3.38.0
+ffmpeg-python
+black
+autoflake
+flake8
+psutil
+isort>=5.0.0,<6.0.0
