@@ -15,7 +15,7 @@ from vidutil.memory import get_current_memory
 # logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s[%(lineno)d]: %(message)s")
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
@@ -35,6 +35,8 @@ class VideoEncoder:
         #  - support multiple processes
         #  - support multiple threads
         #  - support logging time
+        #  - add check if path exists
+
         logger.debug(f"Loading file://{os.path.abspath(path)}")
         frames = []
         cap = cv2.VideoCapture(path)
@@ -44,9 +46,10 @@ class VideoEncoder:
             ret, img = cap.read()
             if ret:
                 frames.append(img)
-        logger.debug(get_current_memory())
+        logger.debug(f"Memory usage: {get_current_memory()} MB")
         gc.collect()
-        logger.debug("VideoEncoder.load - garbage collected")
+        logger.debug("Garbage collected")
+        logger.debug(f"New memory usage: {get_current_memory()} MB")
         return frames
 
     @staticmethod
@@ -64,20 +67,24 @@ class VideoEncoder:
         return int(cv2.VideoCapture(path).get(cv2.CAP_PROP_FRAME_COUNT))
 
     @staticmethod
-    def save(path: str, frames: List[np.array], fps: float, size: tuple) -> None:
+    def save(path: str, frames: List[np.array], fps: float, size: tuple, codec="mp4v") -> None:
         """
         Save video to disk
         :param path: path to save image to
         :param frames: list of numpy arrays, each representing a single video frame
         :param size: a tuple (width, height)
-        :param fps: int
+        :param fps: float
+        :param codec: string codec with a supported opencv value. Defaults to mp4v
         :return:
         """
         # Options: mp4v, avc1
-        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        fourcc = cv2.VideoWriter_fourcc(*codec)
         video = cv2.VideoWriter(path, fourcc, fps, size)
         # todo: how to optimize? maybe by using separate file+thread per 10 seconds of video?
         length = len(frames)
+
+        # todo: verify width/height of each frame with provided w/h. If it's swapped for example,
+        #  it will result in a <1KB file that can't be opened.
         for i, frame in enumerate(frames):
             # todo: make percentage available to invoker of method
             percentage = round((i + 1) / length * 100, 2)
@@ -90,6 +97,7 @@ class VideoEncoder:
         del video
         gc.collect()
         logger.info("VideoEncoder.save - garbage collected")
+        logger.info(f"saved to file://{os.path.abspath(path)}")
         logger.info(get_current_memory())
 
     @staticmethod
