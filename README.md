@@ -1,3 +1,7 @@
+Installation
+================
+
+    pip install git+https://github.com/etsuko-io/vidutil.git
 
 Development
 ================

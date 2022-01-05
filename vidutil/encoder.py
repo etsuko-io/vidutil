@@ -8,7 +8,9 @@ from typing import List
 import ffmpeg
 import numpy as np
 from cv2 import cv2
-from memory import get_current_memory
+from numpy import ndarray
+
+from vidutil.memory import get_current_memory
 
 # logging
 logger = logging.getLogger(__name__)
@@ -27,7 +29,7 @@ class VideoEncoder:
     lock = Lock()
 
     @staticmethod
-    def load(path) -> List:
+    def load(path) -> List[ndarray]:
         # todo:
         #  - support multiple files
         #  - support multiple processes
