@@ -2,8 +2,10 @@ import gc
 import logging
 import os
 import os.path
+from os.path import join, isdir, isfile, abspath
+from pathlib import Path
 from threading import Lock
-from typing import List
+from typing import List, Union
 
 import ffmpeg
 import numpy as np
@@ -15,7 +17,9 @@ from vidutil.memory import get_current_memory
 # logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s[%(lineno)d]: %(message)s")
+formatter = logging.Formatter(
+    "%(asctime)s [%(levelname)s] %(name)s[%(lineno)d]: %(message)s"
+)
 handler = logging.StreamHandler()
 handler.setFormatter(formatter)
 logger.addHandler(handler)
@@ -29,7 +33,12 @@ class VideoEncoder:
     lock = Lock()
 
     @staticmethod
-    def load(path) -> List[ndarray]:
+    def load_video(path) -> List[ndarray]:
+        """
+        Load a video into memory as single frames.
+        :param path: path to video file
+        :return: list of frames
+        """
         # todo:
         #  - support multiple files
         #  - support multiple processes
@@ -42,7 +51,8 @@ class VideoEncoder:
         cap = cv2.VideoCapture(path)
         ret = True
         while ret:
-            # read one frame from the 'capture' object; img is (H, W, C) [height width channels?]
+            # read one frame from the 'capture' object;
+            # img is (H, W, C) [height width channels?]
             ret, img = cap.read()
             if ret:
                 frames.append(img)
@@ -53,21 +63,52 @@ class VideoEncoder:
         return frames
 
     @staticmethod
-    def get_fps(path) -> float:
+    def list_images(path: Union[str, Path], extensions=None) -> List[Path]:
+        if not extensions:
+            extensions = [".png", ".jpg", ".jpeg", ".tif", ".tiff"]
+        if not isdir(path):
+            raise ValueError(f"{path} is not a directory")
+        paths = sorted(
+            [
+                abspath(join(path, f))
+                for f in os.listdir(path)
+                if not f.startswith(".")
+                and isfile(join(path, f))
+                and Path(f).suffix in extensions
+            ],
+            key=str.lower,
+        )
+        return [Path(p) for p in paths]
+
+    @staticmethod
+    def load_images(paths: List[Union[str, Path]]) -> List[ndarray]:
+        frames = []
+        for p in paths:
+            if isinstance(p, Path):
+                frames.append(cv2.imread(p.as_posix()))
+            else:
+                frames.append(cv2.imread(p))
+
+        return frames
+
+    @staticmethod
+    def get_fps(path: Union[str, Path]) -> float:
         # todo: verify it's not loaded into memory
         """
         Return the FPS of a video file without loading it in to memory
-        :param path:
+        :param path: path to video
         :return:
         """
         return cv2.VideoCapture(path).get(cv2.CAP_PROP_FPS)
 
     @staticmethod
-    def get_total_frames(path) -> int:
+    def get_total_frames(path: Union[str, Path]) -> int:
         return int(cv2.VideoCapture(path).get(cv2.CAP_PROP_FRAME_COUNT))
 
     @staticmethod
-    def save(path: str, frames: List[np.array], fps: float, size: tuple, codec="mp4v") -> None:
+    def save(
+        path: str, frames: List[np.array], fps: float, size: tuple, codec="mp4v"
+    ) -> None:
         """
         Save video to disk
         :param path: path to save image to
@@ -80,10 +121,12 @@ class VideoEncoder:
         # Options: mp4v, avc1
         fourcc = cv2.VideoWriter_fourcc(*codec)
         video = cv2.VideoWriter(path, fourcc, fps, size)
-        # todo: how to optimize? maybe by using separate file+thread per 10 seconds of video?
+        # todo: how to optimize? maybe by using separate
+        #  file+thread per 10 seconds of video?
         length = len(frames)
 
-        # todo: verify width/height of each frame with provided w/h. If it's swapped for example,
+        # todo: verify width/height of each frame with provided w/h.
+        #  If it's swapped for example,
         #  it will result in a <1KB file that can't be opened.
         for i, frame in enumerate(frames):
             # todo: make percentage available to invoker of method
