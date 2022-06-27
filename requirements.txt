@@ -1,7 +1,7 @@
 setuptools
 wheel
 numpy
-opencv-python-headless>=4.5.5.62,<5.0.0
+opencv-contrib-python==4.5.5.64
 pygobject==3.38.0
 ffmpeg-python
 black
