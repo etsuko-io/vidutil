@@ -111,7 +111,7 @@ class VideoEncoder:
         frames: List[np.array],
         fps: float,
         size: Optional[Tuple[int, int]] = None,
-        codec: str = "mp4v",
+        codec: Union[str, int] = "mp4v",
     ) -> None:
         """
         Save video to disk
@@ -124,7 +124,15 @@ class VideoEncoder:
         :return:
         """
         # Some options: mp4v (MPEG-4/.mp4), avc1 (h264)
-        fourcc = cv2.VideoWriter_fourcc(*codec)
+        # https://gist.github.com/takuma7/44f9ecb028ff00e2132e
+        if isinstance(codec, str):
+            fourcc = cv2.VideoWriter_fourcc(*codec)
+        else:
+            # allow ints as opencv uses them for certain special codec behaviour:
+            #  -1 (showing available codecs),
+            #  0  (exporting images)
+            fourcc = codec
+
         if not size:
             size = frames[0].shape[1::-1]
         video = cv2.VideoWriter(path, fourcc, fps, size)
