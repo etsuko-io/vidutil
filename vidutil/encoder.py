@@ -5,7 +5,7 @@ import os.path
 from os.path import join, isdir, isfile, abspath
 from pathlib import Path
 from threading import Lock
-from typing import List, Union
+from typing import List, Union, Tuple, Optional
 
 import ffmpeg
 import numpy as np
@@ -107,19 +107,26 @@ class VideoEncoder:
 
     @staticmethod
     def save(
-        path: str, frames: List[np.array], fps: float, size: tuple, codec="mp4v"
+        path: str,
+        frames: List[np.array],
+        fps: float,
+        size: Optional[Tuple[int, int]] = None,
+        codec: str = "mp4v",
     ) -> None:
         """
         Save video to disk
         :param path: path to save image to
         :param frames: list of numpy arrays, each representing a single video frame
-        :param size: a tuple (width, height)
+        :param size: a tuple (width, height); calculated based on first frame if
+         not provided
         :param fps: float
         :param codec: string codec with a supported opencv value. Defaults to mp4v
         :return:
         """
-        # Options: mp4v, avc1
+        # Some options: mp4v (MPEG-4/.mp4), avc1 (h264)
         fourcc = cv2.VideoWriter_fourcc(*codec)
+        if not size:
+            size = frames[0].shape[1::-1]
         video = cv2.VideoWriter(path, fourcc, fps, size)
         # todo: how to optimize? maybe by using separate
         #  file+thread per 10 seconds of video?
