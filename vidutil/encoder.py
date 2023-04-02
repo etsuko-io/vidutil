@@ -123,7 +123,10 @@ class VideoEncoder:
         :param codec: string codec with a supported opencv value. Defaults to mp4v
         :return:
         """
-        # Some options: mp4v (MPEG-4/.mp4), avc1 (h264)
+        # Some options:
+        # - mp4v (MPEG-4/.mp4)
+        # - avc1 (h264)
+        # - hvc1 (HVEC, .avi) works in VLC, quality seems fine
         # https://gist.github.com/takuma7/44f9ecb028ff00e2132e
         if isinstance(codec, str):
             fourcc = cv2.VideoWriter_fourcc(*codec)
@@ -180,3 +183,13 @@ class VideoEncoder:
         logger.info(f"saved to file://{os.path.abspath(output_path)}")
 
         logger.info(get_current_memory())
+
+    @staticmethod
+    def ffmpeg_export_frames(
+        input_path: str, output_path: str, pattern_type: str = "glob", fps: float = 25
+    ):
+        (
+            ffmpeg.input(input_path, pattern_type=pattern_type, framerate=fps)
+            .output(output_path)
+            .run(overwrite_output=True)
+        )

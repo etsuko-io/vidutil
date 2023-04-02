@@ -26,3 +26,11 @@ class TestEncoder:
         assert len(frames) == 9
         for frame in frames:
             assert isinstance(frame, ndarray)
+
+    def test_ffmpeg_export_frames(self):
+        path = "assets/image-sequence-2"
+        VideoEncoder.ffmpeg_export_frames(f"{path}/im*.jpeg", "movie.mp4")
+
+    def test_ffmpeg_export_frames(self):
+        path = "assets/image-sequence-2"
+        VideoEncoder.ffmpeg_export_frames(f"{path}/im*.jpeg", "movie.mp4")
